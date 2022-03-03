@@ -8,12 +8,14 @@ import copy
 from kafka import KafkaProducer
 from json import dumps
 
-producer = None
-while producer==None:
-    try:
-        producer = KafkaProducer(bootstrap_servers=['kafka0:29092'],value_serializer=lambda x: dumps(x).encode('utf-8'))
-    except Exception as err:
-        print(f"Waiting for broker")
+def getKafkaProducer():
+    producer = None
+    while producer==None:
+        try:
+            producer = KafkaProducer(bootstrap_servers=['kafka0:29092'],value_serializer=lambda x: dumps(x).encode('utf-8'))
+        except Exception as err:
+            print(f"Waiting for broker")
+    return producer
 
 
 
@@ -50,7 +52,7 @@ def initiate_data():
         user["previouspatology"]=random.choice(["0","1"])
         user["cp"]=random.randint(46001, 46025)
         user["time"]=datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-        users[user["id"]]=user   
+        users[user["id"]]=user
     num=0
     for element in users.items():
         print(f"Generating friends of {num} of {len(users)}")
@@ -59,10 +61,10 @@ def initiate_data():
             if friend["id"]!=element[0]:
                 users[element[0]]["friends"].append(friend["id"])
             else:
-                print("No friend of yourself") 
+                print("No friend of yourself")
         num=num+1
 
-    print("DATA GENERATED")        
+    print("DATA GENERATED")
 
 
 def generate_step():
@@ -92,17 +94,14 @@ def generate_step():
 
 oldval={}
 while True:
-    try:  
-        #if keyboard.is_pressed('q'):  # if key 'q' is pressed 
-        #    print('You Exited the data generator')
-        #    break  
-        #else:
+    try:
         generate_step()
         # Place your code here
         for user in users.items():
-            producer.send('mocked_data', value=user)
+            producer = getKafkaProducer()
+            # Sending only Json component
+            producer.send('mocked_data', value=user[1])
         # End Place for code
         time.sleep(10)
     except Exception as err:
         print(f"Unexpected {err}, {type(err)}")
-          
